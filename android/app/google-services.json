@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "614290644556",
+    "firebase_url": "https://finedine-5974a-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "finedine-5974a",
+    "storage_bucket": "finedine-5974a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:614290644556:android:b18f8e473604801981dee9",
+        "android_client_info": {
+          "package_name": "com.dineout"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiVASefkRxTi9TgcmLgV5t4klVNDFLcXQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:614290644556:android:cfb04ab19824986081dee9",
+        "android_client_info": {
+          "package_name": "com.grubhub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiVASefkRxTi9TgcmLgV5t4klVNDFLcXQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

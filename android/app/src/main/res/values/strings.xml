@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">DineOut</string>
+    <string name="callkeep_authorization">YourApp needs permission to manage calls</string>
+    <string name="callkeep_incoming_call">Incoming Call</string>
 </resources>
