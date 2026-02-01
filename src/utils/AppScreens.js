@@ -5,6 +5,7 @@ export const EDIT_SCREEN = 'EditScreen';
 export const NEW_SPLASH_SCREEN = 'NewSplashScreen';
 export const NEW_ORDER_SCREEN = 'NewOrderScreen';
 export const TABLE_SCREEN = 'TableScreen';
+export const ORDER_DETAIL_SCREEN = 'OrderDetailsScreen'
 export class AppScreens {
   static ADD_MENU_SCREEN = 'AddMenu';
   static USER_SCREEN = 'UserScreen';
@@ -14,4 +15,7 @@ export class AppScreens {
   static ORDER_HISTORY = 'OrderHistory';
   static ADD_RESTURANT = 'AddResturant';
   static RESTURANT_MENU = ' ResturantMenu';
+  static OFFER_SCREEN = 'OfferScreen';
+  static ORDER_DETAIL_SCREEN = 'OrderDetailsScreen';
+  static UPDATE_MENU_SCREEN = 'UpdateMenuScreen'
 }

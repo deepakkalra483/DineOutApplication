@@ -1,21 +1,25 @@
-import {Image, View} from 'react-native';
-import {styles} from '../../utils/AppConstants';
-import {AppImages} from '../../utils/AppImages';
+import { Image, View } from 'react-native';
+import { styles } from '../../utils/AppConstants';
+import { AppImages } from '../../utils/AppImages';
 import AsyncStorage from '@react-native-community/async-storage';
-import {navigateTo} from '../../utils/RootNavigation';
-import {HOME_SCREEN, LOGIN_SCREEN} from '../../utils/AppScreens';
-import {useEffect} from 'react';
+import { navigateTo } from '../../utils/RootNavigation';
+import { HOME_SCREEN, LOGIN_SCREEN } from '../../utils/AppScreens';
+import { useEffect } from 'react';
+import { getNewToken } from '../../networking/FirebaseMessaging';
 
-const NewSplashScreen = ({navigation}) => {
+const NewSplashScreen = ({ navigation }) => {
   const verifyUser = () => {
     AsyncStorage.getItem('user').then(res => {
       console.log('res', res);
       if (res) {
         const parsedData = JSON.parse(res);
-        setTimeout(() => {
-          navigation.push(HOME_SCREEN, {params: parsedData});
-          // navigateTo(HOME_SCREEN, parsedData);
-        }, 500);
+        getNewToken().then(() => {
+          navigation.push(HOME_SCREEN, { params: parsedData });
+        })
+        // setTimeout(() => {
+        //   navigation.push(HOME_SCREEN, { params: parsedData });
+        //   // navigateTo(HOME_SCREEN, parsedData);
+        // }, 500);
       } else {
         setTimeout(() => {
           navigation.push(LOGIN_SCREEN);
@@ -33,10 +37,10 @@ const NewSplashScreen = ({navigation}) => {
     <View
       style={[
         styles.container,
-        {justifyContent: 'center', alignItems: 'center'},
+        { justifyContent: 'center', alignItems: 'center' },
       ]}>
       <Image
-        style={{height: 100, width: 100, resizeMode: 'contain'}}
+        style={{ height: 100, width: 100, resizeMode: 'contain' }}
         source={require('../../assets/images/icons/qr_logo.png')}
       />
     </View>

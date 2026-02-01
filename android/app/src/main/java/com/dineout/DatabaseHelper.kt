@@ -32,6 +32,17 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         private const val COLUMN_ITEM_PRICE = "price"
         private const val COLUMN_ITEM_IMAGE = "src"
         private const val COLUMN_ITEM_CATEGORY_ID = "category_id" // Foreign key
+
+        private const val CUSTOMER_TABLE = "customers"
+        private const val CUSTOMER_ID = "id"
+        private const val CUSTOMER_NAME = "name"
+        private const val CUSTOMER_MOBILE = "mobile"
+
+        data class Customer(
+            val id: Int = 0,
+            val name: String,
+            val mobile: String
+        )
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -43,14 +54,26 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
         val createCategoryTable = "CREATE TABLE $TABLE_CATEGORY ($COLUMN_CATEGORY_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_CATEGORY_NAME TEXT UNIQUE)"
         val createItemTable = "CREATE TABLE $TABLE_ITEM ($COLUMN_ITEM_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_ITEM_NAME TEXT, $COLUMN_ITEM_PRICE TEXT, $COLUMN_ITEM_IMAGE TEXT, $COLUMN_ITEM_CATEGORY_ID INTEGER, FOREIGN KEY ($COLUMN_ITEM_CATEGORY_ID) REFERENCES $TABLE_CATEGORY($COLUMN_CATEGORY_ID))"
+
+        val createCustomerTable = """
+            CREATE TABLE $CUSTOMER_TABLE (
+                $CUSTOMER_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $CUSTOMER_NAME TEXT,
+                $CUSTOMER_MOBILE TEXT
+            )
+        """.trimIndent()
         db.execSQL(createTableQuery)
         db.execSQL(createLatestTable)
         db.execSQL(createCategoryTable)
         db.execSQL(createItemTable)
+        db.execSQL(createCustomerTable)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_NAME")
+        val tables = arrayOf("customers", "orders", "items","category")
+        for (table in tables) {
+            db.execSQL("DROP TABLE IF EXISTS $table")
+        }
         onCreate(db)
     }
 
@@ -116,6 +139,12 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         return categories
     }
 
+    fun checkout(tableNumber: String,mobile:String){
+        val db = writableDatabase
+        val deleteQuery = "DELETE FROM $LATEST_ORDER WHERE $COLUMN_TABLE_NUMBER = ? AND $COLUMN_MOBILE != ?"
+        db.execSQL(deleteQuery, arrayOf(tableNumber, mobile))
+    }
+
     fun insertOrder(tableNumber: String, items: String,token:String,read:String,userId:String,message:String,name:String,mobile:String) {
         val db = writableDatabase
         val values = ContentValues().apply {
@@ -129,8 +158,8 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             put(COLUMN_MOBILE,mobile)
         }
         db.insert(TABLE_NAME, null, values)
-        val deleteQuery = "DELETE FROM $LATEST_ORDER WHERE $COLUMN_TABLE_NUMBER = ? AND $COLUMN_USER_ID != ?"
-        db.execSQL(deleteQuery, arrayOf(tableNumber, userId))
+        val deleteQuery = "DELETE FROM $LATEST_ORDER WHERE $COLUMN_TABLE_NUMBER = ? AND $COLUMN_MOBILE != ?"
+        db.execSQL(deleteQuery, arrayOf(tableNumber, mobile))
 
         // Insert into Latest Orders (Always keeps track of the latest orders)
         val latestValues = ContentValues().apply {
@@ -254,44 +283,144 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     }
 
 
-    fun getOrdersByTable(tableNumber: String): Map<String, List<Map<String, Any>>> {
+    fun getOrdersByTable(tableNumber: String): List<Map<String, Any>> {
         val db = readableDatabase
-        val userOrdersMap = mutableMapOf<String, MutableList<Map<String, Any>>>()
+        val tempMap = mutableMapOf<String, MutableMap<String, Any>>()
 
         val cursor = db.rawQuery(
-            "SELECT * FROM $TABLE_NAME WHERE $COLUMN_TABLE_NUMBER = ? ORDER BY $COLUMN_STATUS ASC, $COLUMN_TIMESTAMP DESC",
+            "SELECT * FROM $TABLE_NAME WHERE $COLUMN_TABLE_NUMBER = ? ORDER BY $COLUMN_TIMESTAMP DESC",
             arrayOf(tableNumber)
         )
 
         while (cursor.moveToNext()) {
             val userId = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_ID))
+            val name = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_NAME))
             val itemsString = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_ITEMS))
             val itemsArray = JSONArray(itemsString)
 
             val order = mapOf(
-                COLUMN_ID to cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)),
-                COLUMN_ITEMS to itemsArray,
-                COLUMN_STATUS to cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_STATUS)),
-                COLUMN_TIMESTAMP to cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TIMESTAMP)),
-                COLUMN_MESSAGE to cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_MESSAGE))
+                "id" to cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID)),
+                "items" to itemsArray,
+                "read" to cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_STATUS)),
+                "time_stamp" to cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TIMESTAMP)),
+                "message" to cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_MESSAGE))
             )
 
-            if (!userOrdersMap.containsKey(userId)) {
-                userOrdersMap[userId] = mutableListOf(order)
+            if (!tempMap.containsKey(userId)) {
+                tempMap[userId] = mutableMapOf(
+                    "id" to userId,
+                    "name" to name,
+                    "data" to mutableListOf(order)
+                )
             } else {
-                userOrdersMap[userId]?.add(order)
+                (tempMap[userId]?.get("data") as MutableList<Map<String, Any>>).add(order)
             }
         }
 
         cursor.close()
         db.close()
 
-        return userOrdersMap
+        // ✅ THIS LINE FIXES YOUR ERROR
+        return tempMap.values.toList()
     }
+
+
 
     fun markOrdersAsRead(tableNumber: String) {
         val db = readableDatabase
         val sql = "UPDATE $LATEST_ORDER SET $COLUMN_STATUS = 1 WHERE $COLUMN_TABLE_NUMBER = ?"
         db.execSQL(sql, arrayOf(tableNumber))
     }
+
+    fun addCustomer(name: String, mobile: String): Long {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(CUSTOMER_NAME, name)
+            put(CUSTOMER_MOBILE, mobile)
+        }
+
+        val result = db.insert(CUSTOMER_TABLE, null, values)
+        db.close()
+        return result // returns inserted row ID, or -1 if failed
+    }
+
+    fun getAllCustomers(): List<Customer> {
+        val customers = mutableListOf<Customer>()
+        val db = readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM $CUSTOMER_TABLE", null)
+
+        if (cursor.moveToFirst()) {
+            do {
+                val id = cursor.getInt(cursor.getColumnIndexOrThrow(CUSTOMER_ID))
+                val name = cursor.getString(cursor.getColumnIndexOrThrow(CUSTOMER_NAME))
+                val mobile = cursor.getString(cursor.getColumnIndexOrThrow(CUSTOMER_MOBILE))
+                customers.add(Customer(id, name, mobile))
+            } while (cursor.moveToNext())
+        }
+
+        cursor.close()
+        db.close()
+        return customers
+    }
+
+    fun getAllUsers(): List<Map<String, String>> {
+        val db = readableDatabase
+        val list = mutableListOf<Map<String, String>>()
+
+        val query = """
+    SELECT $COLUMN_USER_ID, $COLUMN_NAME, $COLUMN_MOBILE
+    FROM $TABLE_NAME
+    GROUP BY $COLUMN_MOBILE
+    ORDER BY $COLUMN_NAME ASC
+    """
+
+        val cursor = db.rawQuery(query, null)
+
+        if (cursor.moveToFirst()) {
+            do {
+                val userId = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USER_ID))
+                val name = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_NAME))
+                val mobile = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_MOBILE))
+
+                list.add(
+                    mapOf(
+                        "userId" to userId,
+                        "name" to name,
+                        "mobile" to mobile
+                    )
+                )
+            } while (cursor.moveToNext())
+        }
+
+        cursor.close()
+        db.close()
+
+        return list
+    }
+
+    fun updateOrder(id: String, newPrice: String) {
+        val db = writableDatabase
+
+        val values = ContentValues().apply {
+            put(COLUMN_ITEMS, newPrice)   // Update price
+        }
+
+        db.update(
+            TABLE_NAME,
+            values,
+            "$COLUMN_ID = ?",       // WHERE condition
+            arrayOf(id)
+        )
+
+        // Also update the latest order table
+        db.update(
+            LATEST_ORDER,
+            values,
+            "$COLUMN_ID = ?",
+            arrayOf(id)
+        )
+
+        db.close()
+    }
+
 }

@@ -1,22 +1,25 @@
 import {
   Alert,
   FlatList,
+  Image,
   Linking,
   NativeModules,
   ScrollView,
+  Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
-import {AppColors} from '../../utils/AppColors';
-import {Header} from '../HomeScreen';
-import {AppImages} from '../../utils/AppImages';
-import {navigateTo} from '../../utils/RootNavigation';
-import {AppScreens, TABLE_SCREEN} from '../../utils/AppScreens';
-import {RegularText, SemiBoldText} from '../../utils/AppConstants';
-import {useDispatch, useSelector} from 'react-redux';
-import {calculateTime} from './OrderScreen';
-import {useEffect, useState} from 'react';
-import {updateRead} from '../../networking/FireStoreService';
-import {getUser} from '../../utils/AsynStorageHelper';
+import { AppColors } from '../../utils/AppColors';
+import { Header } from '../HomeScreen';
+import { AppImages } from '../../utils/AppImages';
+import { navigateTo } from '../../utils/RootNavigation';
+import { AppScreens, TABLE_SCREEN } from '../../utils/AppScreens';
+import { RegularText, SemiBoldText } from '../../utils/AppConstants';
+import { useDispatch, useSelector } from 'react-redux';
+import { calculateTime } from './OrderScreen';
+import { useEffect, useState } from 'react';
+import { updateRead } from '../../networking/FireStoreService';
+import { getUser } from '../../utils/AsynStorageHelper';
 import {
   ADD_NEW_PARAMS,
   SET_READ,
@@ -25,7 +28,11 @@ import {
   UPDATE_READ,
 } from '../../../redux/ReduxConstants';
 import store from '../../../redux/store/Store';
-import {ButtonView} from '../auth/LoginScreen';
+import { ButtonView } from '../auth/LoginScreen';
+import { AppFonts } from '../../utils/AppFonts';
+import RentPopup from '../../compponents/RentPopup';
+import CheckInButton from '../../compponents/CheckInPopUp';
+import { playAudio, stopAudio, toggleAudio } from '../../compponents/AudioPlayer';
 
 const list = [
   {
@@ -38,101 +45,29 @@ const list = [
   },
 ];
 const NewOrderScreen = props => {
-  const {OrdersModule} = NativeModules;
+  const { OrdersModule } = NativeModules;
   const Data = props?.route?.params;
   // const Data = useSelector(state => state?.navReducer);
   const OrdersData = Data?.data;
   console.log('data---', OrdersData);
-  const orders = Data?.data?.data || [];
+  const [orders, setOrders] = useState(Data?.data?.data || [])
+  // let orders = [...(Data?.data?.data || [])];
   const newOrders = orders.filter(order => order.read == '0');
   const [time, setTime] = useState(calculateTime(OrdersData?.timeStamp));
   const [notLoading, setNotLoad] = useState(false);
   const dispatch = useDispatch();
+  const [isVisible, setIsVisible] = useState(false)
 
-  const OrderReady = async (token, data) => {
-    setNotLoad(true);
-    let phoneUrl = `tel:${`${token}`}`;
-    setNotLoad(false);
-    Linking.openURL(phoneUrl);
-    return;
-    Linking.canOpenURL(phoneUrl)
-      .then(supported => {
-        if (!supported) {
-          Alert.alert('Error', 'Phone call not supported on this device');
-          setNotLoad(false);
-        } else {
-          setNotLoad(false);
-          return Linking.openURL(phoneUrl);
-        }
-      })
-      .catch(err => {
-        setNotLoad(false);
-        console.error('An error occurred', err);
-      });
-    return;
-    console.log('loading');
-    const url =
-      'https://notificationapi-zwf4.onrender.com/api/orders/orderReady';
-    // `http://localhost:3001/api/orders/orderReady`
+  const totalPrice = orders.reduce((orderSum, order) => {
+    // sum each order’s items
+    const orderTotal = order.items.reduce((itemSum, item) => {
+      const price = parseFloat(item.price) || 0; // convert string price → number
+      return itemSum + (item.quantity * price);
+    }, 0);
 
-    const payload = {
-      token: token,
-      data: data,
-    };
+    return orderSum + orderTotal;
+  }, 0);
 
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        console.log('dat--', data);
-        setNotLoad(false);
-        Alert.alert('Success', 'Token sent successfully');
-      } else {
-        console.log('error--', JSON.stringify(data));
-        Alert.alert('Error', 'Failed to send token');
-        setNotLoad(false);
-      }
-    } catch (error) {
-      console.log('noteree--', error);
-      setNotLoad(false);
-      Alert.alert('Error', 'Something went wrong, please try again');
-    }
-  };
-
-  console.log('list--', newOrders);
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     setTime(calculateTime(OrdersData?.timeStamp));
-  //   }, 60000); // Update every 60 seconds
-
-  //   return () => clearInterval(interval); // Cleanup on unmount
-  // }, []);
-
-  // const oldOrders = orders
-  //   .filter(order => order.read == '1')
-  //   .flatMap(order => order.items || []);
-
-  const convertOrdersToFirebaseFormat = ordersArray => {
-    let ordersObject = {};
-
-    ordersArray.forEach(order => {
-      ordersObject[order.orderId] = {
-        read: 1, // Updating read status to 1
-        time: order.time,
-        message: order.message,
-        items: order.items,
-      };
-    });
-
-    return {orders: ordersObject};
-  };
 
   const MarkAsread = async () => {
     console.log('table--', OrdersData?.table);
@@ -149,30 +84,17 @@ const NewOrderScreen = props => {
     if (newOrders?.length > 0) {
       console.log('neworder exssit');
       MarkAsread();
-      dispatch({type: SET_REFRESH});
+      dispatch({ type: SET_REFRESH });
     }
   }, []);
 
-  const timestamp = new Date(orders[0]?.time_stamp);
-  timestamp.setMinutes(timestamp.getMinutes() + 330);
+  let timestamp = orders[0]?.time_stamp ? new Date(orders[0]?.time_stamp) : new Date();
+  if (orders[0]?.time_stamp) {
+    timestamp.setMinutes(timestamp.getMinutes() + 330);
+  }
 
-  // useEffect(() => {
-  //   if (newOrders?.length > 0) {
-  //     getUser(res => {
-  //       console.log('item', JSON.stringify(Data?.params?.data));
-  //       const OrderObject = convertOrdersToFirebaseFormat(OrdersData?.orders);
-  //       updateRead(res?.id, OrdersData?.table, OrdersData?.userId, OrderObject);
-  //       dispatch({type: UPDATE_READ, userId: OrdersData?.userId});
-  //     });
-  //   } else {
-  //     console.log('item', JSON.stringify(Data?.params?.data));
-  //     console.log('no new order');
-  //   }
-  // }, []);
-  // const mergedItems = orders.flatMap(order => order.items || []);
-  // console.log('data--', mergedItems);
   return (
-    <View style={{flex: 1, backgroundColor: AppColors?.LIGHT_BACKGROUND}}>
+    <View style={{ flex: 1, backgroundColor: AppColors?.WHITE, }}>
       <Header
         leftSrc={AppImages?.BACK_ICON}
         title={'Orders'}
@@ -181,9 +103,25 @@ const NewOrderScreen = props => {
         rightPress={() =>
           props?.navigation.navigate(AppScreens.ORDER_HISTORY, {
             table: Data?.table,
+            item: Data?.item
           })
         }
       />
+      <RentPopup
+        visible={isVisible}
+        data={Data}
+        onClose={() => setIsVisible(false)}
+        onSave={(rent) => {
+          setOrders(prev => [{
+            read: '1',
+            message: 'rent',
+            items: [{ name: `${rent.time} rent`, price: rent.rent, quantity: 1 }],
+            orderId: 'rent',
+            time: new Date().toISOString()
+          }, ...prev,])
+          setIsVisible(false)
+          dispatch({ type: SET_REFRESH });
+        }} />
       <View
         style={{
           paddingHorizontal: 15,
@@ -199,39 +137,37 @@ const NewOrderScreen = props => {
             marginTop: 10,
           }}>
           <SemiBoldText
-            styles={{fontSize: 20}}
-            text={`Table: ${Data?.table}`}
+            styles={{ fontSize: 20 }}
+            text={`Room: ${Data?.item?.room}`}
             onPress={() => {
-              const tableorder = {
-                userId: '64735754-3370-4919-8807-2000076e74c6',
-                table: 'T1',
-                orders: [
-                  {
-                    orderId: 'nnsdknojDN',
-                    time: '2025-02-18T16:20:28.417Z',
-                    read: '0',
-                    message: 'Spicy',
-                    items: [{size: '', qty: 1, name: 'Mix Sauce Pasta'}],
-                  },
-                ],
-              };
-              store?.dispatch({
-                type: ADD_NEW_PARAMS,
-                data: {table: 'T1', params: tableorder},
-              });
+              // const tableorder = {
+              //   userId: '64735754-3370-4919-8807-2000076e74c6',
+              //   table: 'T1',
+              //   orders: [
+              //     {
+              //       orderId: 'nnsdknojDN',
+              //       time: '2025-02-18T16:20:28.417Z',
+              //       read: '0',
+              //       message: 'Spicy',
+              //       items: [{ size: '', qty: 1, name: 'Mix Sauce Pasta' }],
+              //     },
+              //   ],
+              // };
+              // store?.dispatch({
+              //   type: ADD_NEW_PARAMS,
+              //   data: { table: 'T1', params: tableorder },
+              // });
             }}
           />
           {Data?.data?.mobile && (
             <ButtonView
               loading={notLoading}
               click
-              styles={{width: '30%', height: 30}}
-              text={`Ready`}
+              styles={{ width: '30%', height: 30 }}
+              text={`Add Rent`}
               onPress={() =>
-                OrderReady(Data?.data?.mobile, {
-                  id: Data?.id,
-                  table: Data?.table,
-                })
+                setIsVisible(true)
+
               }
             />
           )}
@@ -254,8 +190,25 @@ const NewOrderScreen = props => {
           />
         </View>
       </View>
-      <ScrollView
-        contentContainerStyle={{paddingBottom: 20, overflow: 'hidden'}}>
+
+      {/* <View style={{ justifyContent: 'center', alignItems: 'center', flex: 0.8 }}> */}
+      {!Data?.data?.name && <Image
+        style={{ height: 300, width: 300, alignSelf: 'center' }}
+        resizeMode='cover'
+        source={AppImages.CHECK_IN} />}
+      <CheckInButton
+        data={Data}
+        isCheckIn={Data?.data?.name}
+        onSubmit={(data) => {
+          props?.navigation.goBack()
+          dispatch({ type: SET_REFRESH });
+          console.log("Check-in data:", data)
+        }}
+      />
+      {/* // </View> */}
+
+      {Data?.data?.name && <ScrollView
+        contentContainerStyle={{ paddingBottom: 20, overflow: 'hidden' }}>
         {newOrders.map(item => (
           <View
             style={{
@@ -295,7 +248,7 @@ const NewOrderScreen = props => {
           }}>
           <SemiBoldText
             styles={{}}
-            text={`Last orders from ${Data?.data?.name}`}
+            text={Data?.data?.name ? `Last orders from ${Data?.data?.name}` : `No order from ${Data?.item?.room}`}
           />
           {/* <SemiBoldText
           styles={{width: '25%', textAlign: 'center'}}
@@ -303,50 +256,71 @@ const NewOrderScreen = props => {
         /> */}
         </View>
         {orders.map(
-          item =>
-            item?.read != 0 && (
-              <View>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}>
+          item => {
+            console.log('orderItem---', item)
+            const total = item?.items?.reduce((sum, item) => sum + (item?.quantity * parseFloat(item?.price) || 0), 0)
+            return (
+              item?.read != 0 && (
+                <TouchableOpacity
+                  activeOpacity={0.9}>
                   <View
                     style={{
-                      backgroundColor: AppColors.LIGHT_BORDER,
-                      height: 1,
-                      flex: 1,
-                    }}></View>
-                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                    <SemiBoldText
-                      styles={{
-                        marginHorizontal: 15,
-                        fontSize: 12,
-                        color: AppColors.LIGHT_GRAY_TEXT,
-                      }}
-                      text={`${timeAgo(item?.time_stamp)}`}
-                    />
-                    <SemiBoldText
-                      styles={{
-                        marginRight: 15,
-                        fontSize: 12,
-                        color: 'green',
-                      }}
-                      text={`${item?.message}`}
-                    />
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}>
+                    <View
+                      style={{
+                        backgroundColor: AppColors.LIGHT_BORDER,
+                        height: 1,
+                        flex: 1,
+                      }}></View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <SemiBoldText
+                        styles={{
+                          marginHorizontal: 15,
+                          fontSize: 12,
+                          color: AppColors.LIGHT_GRAY_TEXT,
+                        }}
+                        text={`${timeAgo(item?.time_stamp)}`}
+                      />
+                      <SemiBoldText
+                        styles={{
+                          marginRight: 15,
+                          fontSize: 12,
+                          color: 'green',
+                        }}
+                        text={`${item?.message}`}
+                      />
+                    </View>
+                    <View
+                      style={{
+                        backgroundColor: AppColors.LIGHT_BORDER,
+                        height: 1,
+                        flex: 1,
+                      }}></View>
                   </View>
-                  <View
-                    style={{
-                      backgroundColor: AppColors.LIGHT_BORDER,
-                      height: 1,
-                      flex: 1,
-                    }}></View>
-                </View>
-                <OldOrderCell list={item?.items} />
-              </View>
-            ),
+                  <OldOrderCell list={item?.items} />
+                </TouchableOpacity>
+              ))
+          }
         )}
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingVertical: 10,
+          backgroundColor: '#EAF0F0',
+          paddingHorizontal: 15,
+          marginTop: 10,
+          justifyContent: 'space-between'
+        }}>
+          <SemiBoldText text={'Total'} />
+          <Text style={{
+            textAlign: 'right',
+            fontSize: 16,
+            fontFamily: AppFonts.BOLD,
+          }}>{`₹ ${totalPrice}`}</Text>
+        </View>
         {/* <View
           style={{
             flex: 1,
@@ -357,77 +331,8 @@ const NewOrderScreen = props => {
           }}>
           <OldOrderCell list={orders} />
         </View> */}
-      </ScrollView>
+      </ScrollView>}
 
-      {/* <FlatList
-        data={orders}
-        contentContainerStyle={{paddingHorizontal: 15,paddingBottom:20}}
-        renderItem={({item, index}) =>
-          item?.read == 0 ? (
-            <View
-              style={{
-                marginHorizontal: 15,
-                marginTop: 10,
-                backgroundColor: '#ECEDED',
-                overflow: 'hidden',
-                borderRadius: 15,
-                borderColor: '#8BB5BE',
-                borderWidth: 1,
-              }}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: '#EAF0F0',
-                  // justifyContent: 'space-between',
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                }}>
-                <SemiBoldText text={`${calculateTime(item?.time)}`} />
-                <SemiBoldText text={`  ${item?.message}`} />
-              </View>
-              <NewOrder status list={item?.items} />
-            </View>
-          ) : (
-            <OldOrderCell list={item?.items} />
-          )
-          // <View
-          //   style={{
-          //     marginHorizontal: 15,
-          //     marginTop: 10,
-          //     backgroundColor: '#ECEDED',
-          //     overflow: 'hidden',
-          //     borderRadius: 15,
-          //     borderColor: '#8BB5BE',
-          //     borderWidth: 1,
-          //   }}>
-          //   <View
-          //     style={{
-          //       flexDirection: 'row',
-          //       alignItems: 'center',
-          //       backgroundColor: '#EAF0F0',
-          //       // justifyContent: 'space-between',
-          //       paddingHorizontal: 10,
-          //       paddingVertical: 5,
-          //     }}>
-          //     <SemiBoldText text={`${calculateTime(item?.time)}`} />
-          //     <SemiBoldText text={`  ${item?.message}`} />
-          //   </View>
-          //   <NewOrder status list={item?.items} />
-          // </View>
-        }
-      /> */}
-
-      {/* <View
-        style={{
-          flex: 1,
-          borderTopColor: '#A9A9A9',
-          borderTopWidth: newOrders?.lenght > 0 ? 1 : 0,
-          borderStyle: 'dashed',
-          marginTop: newOrders?.lenght > 0 ? 15 : 0,
-        }}>
-        <OldOrderCell list={oldOrders} />
-      </View> */}
     </View>
   );
 };
@@ -437,6 +342,13 @@ export default NewOrderScreen;
 const NewOrder = props => {
   const items = props?.list;
   const status = props?.status;
+  const [playingUrl, setPlayingUrl] = useState(null);
+
+  useEffect(() => {
+    // Stop audio when component unmounts
+    return () => stopAudio(setPlayingUrl);
+  }, []);
+
   return (
     <View>
       <View
@@ -447,18 +359,71 @@ const NewOrder = props => {
         }}></View>
       {items?.map(item => (
         <View
+          key={item.id}
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-          }}>
-          <RegularText
-            styles={{paddingVertical: 3, paddingLeft: 15}}
-            text={`${item?.quantity} × ${item?.size || ''} ${item?.name}`}
-          />
-          {/* <SemiBoldText
-            styles={{width: '30%', padding: 10, textAlign: 'center'}}
-            text={'× ' + item?.qty}
-          /> */}
+            width: '100%',
+          }}
+        >
+          {/* 🎙 AUDIO ITEM */}
+          {item?.id === 'audio' ? (
+            item?.type === 'audio' ? (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 6,
+                  paddingHorizontal: 15,
+                  backgroundColor: '#ffefea',
+                  flex: 1,
+                  justifyContent: 'center',
+                  borderRadius: 6,
+                }}
+                onPress={() => toggleAudio(item.audioUrl, setPlayingUrl)}
+              >
+                <Text style={{ marginRight: 6 }}>
+                  🎙 Voice Message / Instruction
+                </Text>
+
+                <Image
+                  style={{ height: 18, width: 18, resizeMode: 'contain' }}
+                  source={
+                    playingUrl
+                      ? require('../../assets/images/icons/pause.png')
+                      : require('../../assets/images/icons/play_icon.png')
+                  }
+                />
+              </TouchableOpacity>
+            ) : (
+              // 📝 TEXT INSTRUCTION
+              <View
+                style={{
+                  flex: 1,
+                  paddingVertical: 6,
+                  paddingHorizontal: 15,
+                  backgroundColor: '#ffefea',
+                  borderRadius: 6,
+                }}
+              >
+                <Text style={{ textAlign: 'center' }}>
+                  Message / Instruction
+                </Text>
+
+                <SemiBoldText
+                  styles={{ textAlign: 'center' }}
+                  text={item?.audioUrl}
+                />
+              </View>
+            )
+          ) : (
+            // 🍔 NORMAL FOOD ITEM
+            <RegularText
+              styles={{ paddingVertical: 3, paddingLeft: 15, flex: 1 }}
+              text={`${item?.quantity} × ${item?.size || ''} ${item?.name}`}
+            />
+          )}
         </View>
       ))}
       {status && (
@@ -478,44 +443,87 @@ const NewOrder = props => {
 
 export const OldOrderCell = props => {
   const list = props?.list;
+  const [playingUrl, setPlayingUrl] = useState(null);
+
+  useEffect(() => {
+    return () => stopAudio(setPlayingUrl);
+  }, []);
+
   return (
     <View>
-      {/* <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: '#EAF0F0',
-          paddingHorizontal: 15,
-          paddingVertical: 3,
-        }}>
-        <SemiBoldText styles={{flex: 1}} text={'Items'} />
-        <SemiBoldText
-          styles={{width: '25%', textAlign: 'center'}}
-          text={'Quantity'}
-        />
-      </View> */}
-      <View>
-        {list.map(item => (
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              paddingHorizontal: 15,
-              paddingVertical: 3,
-            }}>
-            <SemiBoldText
-              styles={{textAlign: 'center'}}
-              text={item?.quantity + ' × '}
-            />
-            <SemiBoldText styles={{flex: 1}} text={item?.name} />
-          </View>
-        ))}
-      </View>
+      {list.map((item, index) => (
+        <View
+          key={`item-${item.audioUrl || index}`}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 15,
+            paddingVertical: 3,
+          }}
+        >
+          <SemiBoldText
+            styles={{ textAlign: 'center' }}
+            text={item?.id === 'audio' ? '' : item?.quantity + ' × '}
+          />
+
+          {item?.id === 'audio' ? (
+            item?.type === 'audio' ? (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  padding: 10,
+                  flex: 1,
+                  justifyContent: 'center',
+                  paddingBottom: 3,
+                  backgroundColor: '#ffefea',
+                  borderRadius: 6,
+                }}
+                onPress={() => toggleAudio(item.audioUrl, setPlayingUrl)}
+              >
+                <Text style={{ marginRight: 6 }}>Voice Message/Instruction</Text>
+                <Image
+                  style={{ height: 20, width: 20, resizeMode: 'contain' }}
+                  source={
+                    playingUrl === item.audioUrl
+                      ? require('../../assets/images/icons/pause.png')
+                      : require('../../assets/images/icons/play_icon.png')
+                  }
+                />
+              </TouchableOpacity>
+            ) : (
+              <View
+                style={{
+                  flex: 1,
+                  paddingBottom: 3,
+                  backgroundColor: '#ffefea',
+                  borderRadius: 6,
+                }}
+              >
+                <Text style={{ textAlign: 'center' }}>Message / Instruction:</Text>
+                <SemiBoldText
+                  text={item?.audioUrl}
+                  styles={{ textAlign: 'center' }}
+                />
+              </View>
+            )
+          ) : (
+            <SemiBoldText styles={{ flex: 1 }} text={item?.name} />
+          )}
+
+          {item?.id !== 'audio' && <SemiBoldText text={`₹ ${item?.price}`} />}
+        </View>
+      ))}
     </View>
   );
 };
 
+
 export const timeAgo = timestamp => {
+  if (!timestamp) {
+    return ``
+  }
   // Convert SQLite timestamp (which is in UTC) to a Date object
   const utcDate = new Date(timestamp);
 

@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-community/async-storage';
 import messaging from '@react-native-firebase/messaging';
-import {FCM_TOKEN} from '../utils/AsynStorageHelper';
-import {PermissionsAndroid, Platform} from 'react-native';
-import {get} from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
+import { DEVICE_ID, FCM_TOKEN, USER } from '../utils/AsynStorageHelper';
+import { PermissionsAndroid, Platform } from 'react-native';
+import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
+import { updateTokenInDB } from './FireStoreService';
 
 export async function requestPostNotificationPermission() {
   if (Platform.OS === 'android') {
@@ -85,7 +86,7 @@ export async function requestPostNotificationPermission() {
 //   }
 // };
 
-const getFcmToken = async () => {
+export const getFcmToken = async () => {
   try {
     const fcmToken = await messaging().getToken();
     if (fcmToken) {
@@ -99,6 +100,31 @@ const getFcmToken = async () => {
     console.error('Error fetching FCM token:', error);
   }
 };
+
+export const getNewToken = async () => {
+  try {
+    const newToken = await messaging().getToken();
+    if (!newToken) return console.log("Failed to get FCM token");
+
+    const storedToken = await AsyncStorage.getItem(FCM_TOKEN);
+
+
+    // Compare local storage token
+    if (storedToken === newToken) {
+      console.log("Token unchanged. No Firestore update needed.");
+      return;
+    }
+    const DeviceId = await AsyncStorage.getItem(DEVICE_ID);
+    const userDetails = await AsyncStorage.getItem(USER);
+    const parsedUser = JSON.parse(userDetails)
+
+    console.log("New token detected. Updating Firestore...");
+    await AsyncStorage.setItem(FCM_TOKEN, newToken);
+    updateTokenInDB(parsedUser?.id, newToken, DeviceId)
+  } catch (error) {
+    console.error("Error fetching/updating FCM token:", error);
+  }
+}
 
 export const notificationListener = () => {
   // Foreground notification listener

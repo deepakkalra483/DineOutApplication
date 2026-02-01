@@ -9,13 +9,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {RegularText, SemiBoldText, styles} from '../../utils/AppConstants';
-import {Header, ImageButton} from '../HomeScreen';
-import {AppImages} from '../../utils/AppImages';
-import {ButtonView, InputSelection, InputView} from '../auth/LoginScreen';
-import {navigateTo} from '../../utils/RootNavigation';
-import {EDIT_SCREEN} from '../../utils/AppScreens';
-import {useEffect, useState} from 'react';
+import { RegularText, SemiBoldText, styles } from '../../utils/AppConstants';
+import { Header, ImageButton } from '../HomeScreen';
+import { AppImages } from '../../utils/AppImages';
+import { ButtonView, InputSelection, InputView } from '../auth/LoginScreen';
+import { navigateTo } from '../../utils/RootNavigation';
+import { EDIT_SCREEN } from '../../utils/AppScreens';
+import { useEffect, useState } from 'react';
 import {
   DeleteMenuItem,
   EditCategory,
@@ -28,9 +28,9 @@ import {
   SetResturantMenu,
 } from '../../utils/AsynStorageHelper';
 import AsyncStorage from '@react-native-community/async-storage';
-import {getMenuData, UpdateMenu} from '../../networking/FireStoreService';
-import {launchImageLibrary} from 'react-native-image-picker';
-import {AppColors} from '../../utils/AppColors';
+import { getMenuData, syncOrdersForMonth, UpdateMenu } from '../../networking/FireStoreService';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { AppColors } from '../../utils/AppColors';
 
 const menuItems = [
   {
@@ -208,7 +208,7 @@ const InsertMenu = props => {
           src: url,
           id: Date.now(),
         };
-        SetMenu({category: category, item: item}, res => {
+        SetMenu({ category: category, item: item }, res => {
           setId(id + 1);
           AsyncStorage.setItem('id', JSON.stringify(id + 1));
         });
@@ -225,7 +225,7 @@ const InsertMenu = props => {
   const EditCat = () => {
     if (category?.trim()?.length > 0) {
       setImageLoading(true);
-      EditCategory(SelectItem?.category, {category: category}, res => {
+      EditCategory(SelectItem?.category, { category: category }, res => {
         setOpen(null);
         setSelectedItem(null);
         setImageLoading(false);
@@ -272,6 +272,15 @@ const InsertMenu = props => {
     }
   };
 
+  const startSync = async (id) => {
+    const response = await syncOrdersForMonth(
+      id,
+      2025,
+      12
+    );
+    console.log("RESULT:", response);
+  };
+
   useEffect(() => {
     if (!fetching) {
       if (id == 0) {
@@ -316,6 +325,7 @@ const InsertMenu = props => {
                   setFetching(false);
                 },
               );
+              startSync(userDetail?.id)
             });
           }
         });
@@ -332,17 +342,17 @@ const InsertMenu = props => {
             // paddingHorizontal: 15,
             justifyContent: 'center',
           }}>
-          <ScrollView style={{backgroundColor: '#fff', padding: 15}}>
+          <ScrollView style={{ backgroundColor: '#fff', padding: 15 }}>
             <View
               style={{
                 height: 55,
                 justifyContent: 'center',
                 alignItems: 'center',
               }}>
-              <SemiBoldText styles={{fontSize: 20}} text={'Add Item'} />
+              <SemiBoldText styles={{ fontSize: 20 }} text={'Add Item'} />
               <ImageButton
-                styles={{position: 'absolute', right: 10}}
-                imgStyles={{height: 20, width: 20}}
+                styles={{ position: 'absolute', right: 10 }}
+                imgStyles={{ height: 20, width: 20 }}
                 src={AppImages?.CLOSE_ICON}
                 onPress={() => {
                   setSelectedItem(null);
@@ -378,7 +388,7 @@ const InsertMenu = props => {
                   placeholder={'eg: Chees Burger'}
                   onChangeText={i => setName(i)}
                 />
-                {Array.from({length: 3}).map((_, index) => (
+                {Array.from({ length: 3 }).map((_, index) => (
                   <View
                     style={{
                       flexDirection: 'row',
@@ -386,7 +396,7 @@ const InsertMenu = props => {
                       justifyContent: 'space-between',
                     }}>
                     <InputView
-                      styles={{width: '48%'}}
+                      styles={{ width: '48%' }}
                       defaultValue={sizePrice[index]?.size}
                       title={index == 0 ? 'Size' : null}
                       placeholder={'enter Size'}
@@ -409,7 +419,7 @@ const InsertMenu = props => {
 
                           if (text.trim().length === 0) {
                             // Remove the item at the given index
-                            const {size, price} = newSizePrice[index];
+                            const { size, price } = newSizePrice[index];
                             price
                               ? (newSizePrice[index] = price)
                               : newSizePrice.splice(index, 1);
@@ -426,7 +436,7 @@ const InsertMenu = props => {
                       }}
                     />
                     <InputView
-                      styles={{width: '48%'}}
+                      styles={{ width: '48%' }}
                       defaultValue={sizePrice[index]?.price}
                       title={index == 0 ? 'Price' : null}
                       placeholder={'eg: 75'}
@@ -449,7 +459,7 @@ const InsertMenu = props => {
 
                           if (text.trim().length === 0) {
                             // Remove the item at the given index
-                            const {price, size} = newSizePrice[index];
+                            const { price, size } = newSizePrice[index];
                             size
                               ? (newSizePrice[index] = size)
                               : newSizePrice.splice(index, 1);
@@ -494,12 +504,12 @@ const InsertMenu = props => {
                           borderRadius: 10,
                           opacity: imageLoading ? 0.3 : 1,
                         }}
-                        source={{uri: imageUrl}}
+                        source={{ uri: imageUrl }}
                       />
                     ) : (
-                      <View style={{alignItems: 'center'}}>
+                      <View style={{ alignItems: 'center' }}>
                         <Image
-                          style={{height: 25, width: 25, tintColor: '#000'}}
+                          style={{ height: 25, width: 25, tintColor: '#000' }}
                           source={AppImages?.ADD_ICON}
                         />
                         <RegularText
@@ -516,7 +526,7 @@ const InsertMenu = props => {
                       <ActivityIndicator
                         size={30}
                         color={'#000'}
-                        style={{position: 'absolute'}}
+                        style={{ position: 'absolute' }}
                       />
                     )}
                   </TouchableOpacity>
@@ -532,7 +542,7 @@ const InsertMenu = props => {
             )}
             <ButtonView
               loading={imageLoading}
-              styles={{marginTop: 15}}
+              styles={{ marginTop: 15 }}
               text={SelectItem ? 'Update' : 'Add'}
               click={
                 open == 'item'
@@ -557,8 +567,8 @@ const InsertMenu = props => {
         right={'Update'}
         rightPress={() => {
           Alert.alert('Do you want to chnage your menu in all QR ?', '', [
-            {text: 'No', style: 'cancel'},
-            {text: 'Yes', style: 'default', onPress: () => UpdateMenuInDb()},
+            { text: 'No', style: 'cancel' },
+            { text: 'Yes', style: 'default', onPress: () => UpdateMenuInDb() },
           ]);
         }}
         leftPress={() => {
@@ -578,13 +588,13 @@ const InsertMenu = props => {
             paddingBottom: 55,
           }}
           data={menuItems}
-          renderItem={({item}) => (
+          renderItem={({ item }) => (
             <MenuBox
               id={item?.category}
               item={item}
               onRemove={data => {
                 Alert.alert('Are you sure you want to delete ?', '', [
-                  {text: 'No', style: 'cancel'},
+                  { text: 'No', style: 'cancel' },
                   {
                     text: 'Yes',
                     style: 'default',
@@ -593,12 +603,12 @@ const InsertMenu = props => {
                 ]);
               }}
               onEdit={data => {
-                setSelectedItem({...data, ...{category: item?.category}});
+                setSelectedItem({ ...data, ...{ category: item?.category } });
                 setOpen('item');
                 console.warn(data);
               }}
               editCategory={() => {
-                setSelectedItem({category: item?.category});
+                setSelectedItem({ category: item?.category });
                 setOpen('cat');
               }}
             />
@@ -606,13 +616,13 @@ const InsertMenu = props => {
         />
       ) : fetching ? (
         <ActivityIndicator
-          style={{marginTop: 30}}
+          style={{ marginTop: 30 }}
           size={35}
           color={AppColors.BLACK}
         />
       ) : (
         <SemiBoldText
-          styles={{alignSelf: 'center', marginTop: 30, fontSize: 20}}
+          styles={{ alignSelf: 'center', marginTop: 30, fontSize: 20 }}
           text={'No items found'}
         />
       )}
@@ -627,16 +637,16 @@ export const MenuBox = props => {
   return (
     <View key={props?.id}>
       <View
-        style={{flexDirection: 'row', alignItems: 'center', marginBottom: 10}}>
+        style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
         <SemiBoldText styles={{}} text={item?.category} />
         <ImageButton
-          styles={{height: 20, width: 30, paddingTop: 5, paddingLeft: 10}}
-          imgStyles={{height: 15, width: 15}}
+          styles={{ height: 20, width: 30, paddingTop: 5, paddingLeft: 10 }}
+          imgStyles={{ height: 15, width: 15 }}
           src={AppImages.PENCIL_ICON}
           onPress={props?.editCategory}
         />
       </View>
-      <ScrollView contentContainerStyle={{paddingBottom: 10}} horizontal>
+      <ScrollView contentContainerStyle={{ paddingBottom: 10 }} horizontal>
         {item?.items.map(item => (
           <ItemBox
             id={item?.id}
@@ -675,7 +685,7 @@ export const ItemBox = props => {
         }}
         source={
           item?.src
-            ? {uri: item?.src}
+            ? { uri: item?.src }
             : require('../../assets/images/backgroud/burger_photo.png')
         }
       />
@@ -690,16 +700,16 @@ export const ItemBox = props => {
           //   height: height / 7,
           width: width / 3,
         }}>
-        <SemiBoldText styles={{textAlign: 'center'}} text={item?.name} />
+        <SemiBoldText styles={{ textAlign: 'center' }} text={item?.name} />
         {priceArray?.length == 1 ? (
           <RegularText
-            styles={{fontSize: 12}}
+            styles={{ fontSize: 12 }}
             text={`₹ ${priceArray[0]?.price}`}
           />
         ) : (
           priceArray.map(item => (
             <RegularText
-              styles={{fontSize: 12, marginTop: 3}}
+              styles={{ fontSize: 12, marginTop: 3 }}
               text={`${item?.size} ₹ ${item?.price}`}
             />
           ))
@@ -707,13 +717,13 @@ export const ItemBox = props => {
         {/* <RegularText text={`₹ ${item?.price}`} /> */}
         <ButtonView
           click
-          styles={{height: 27, width: '60%', marginTop: 5}}
+          styles={{ height: 27, width: '60%', marginTop: 5 }}
           text={'Edit'}
           onPress={props?.onEdit}
         />
       </View>
       <ImageButton
-        imgStyles={{tintColor: '#fff', height: 10, width: 10}}
+        imgStyles={{ tintColor: '#fff', height: 10, width: 10 }}
         styles={{
           height: 15,
           width: 15,

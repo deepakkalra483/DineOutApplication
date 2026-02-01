@@ -35,7 +35,7 @@ export const SetMenu = (menu, onSuccess, onFailure) => {
           // Add a new category with the items
           updatedMenu = [
             ...previousData,
-            {category: menu?.category, items: [menu?.item]},
+            { category: menu?.category, items: [menu?.item] },
           ];
           getCategories(res => {
             if (res) {
@@ -49,7 +49,7 @@ export const SetMenu = (menu, onSuccess, onFailure) => {
         }
       } else {
         // If no previous data exists, create a new menu
-        updatedMenu = [{category: menu?.category, items: [menu?.item]}];
+        updatedMenu = [{ category: menu?.category, items: [menu?.item] }];
       }
 
       // Save the updated menu back to AsyncStorage
@@ -255,12 +255,12 @@ export const SetResturantMenu = (menu, onSuccess, onFailure) => {
           // Add a new category with the items
           updatedMenu = [
             ...previousData,
-            {category: menu?.category, items: [menu?.item]},
+            { category: menu?.category, items: [menu?.item] },
           ];
         }
       } else {
         // If no previous data exists, create a new menu
-        updatedMenu = [{category: menu?.category, items: [menu?.item]}];
+        updatedMenu = [{ category: menu?.category, items: [menu?.item] }];
       }
 
       // Save the updated menu back to AsyncStorage
@@ -294,7 +294,7 @@ export const SetCategory = (cat, item, onSuccess) => {
         onSuccess();
       });
     } else {
-      const data = JSON.stringify({category: cat, items: [item]});
+      const data = JSON.stringify({ category: cat, items: [item] });
       AsyncStorage.setItem(CATEGORY, data).then(() => {
         onSuccess();
       });
@@ -317,6 +317,27 @@ export const GetCategory = (onSuccess, onFailure) => {
     });
 };
 
+export const storeRooms = (rooms, onSuccess) => {
+  const stringfyRooms = JSON.stringify(rooms)
+  AsyncStorage.setItem(ROOMS, stringfyRooms).then(() => {
+    onSuccess()
+  })
+}
+
+export const getRooms = (onSuccess) => {
+ AsyncStorage.getItem(ROOMS).then(res => {
+    const data = JSON.parse(res);
+    onSuccess(data);
+  });
+}
+
+export const getOffers = (onSuccess) => {
+ AsyncStorage.getItem(OFFERS).then(res => {
+    const data = JSON.parse(res);
+    onSuccess(data);
+  });
+}
+
 export const USER = 'user';
 export const FCM_TOKEN = 'fcmToken';
 export const DEVICE_ID = 'deviceId';
@@ -325,3 +346,5 @@ export const CATEGORY = 'category';
 export const RESTURANTS = 'resturants';
 export const RESTURANT_MENU = 'resturant_menu';
 export const CATEGORY_LIST = 'category_list';
+export const ROOMS = 'rooms';
+export const OFFERS='offers'

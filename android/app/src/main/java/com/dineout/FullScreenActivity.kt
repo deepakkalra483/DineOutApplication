@@ -46,14 +46,22 @@ class FullScreenActivity : Activity() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val data = intent?.getSerializableExtra("notification_data") as? HashMap<String, String>
             if (data != null) {
-                val tableNumber = data["table"] ?: "Unknown Caller"
+                val tableNumber = data["table"]
+                if (tableNumber.isNullOrBlank() ||
+                    tableNumber == "undefined" ||
+                    tableNumber == "null" ||
+                    tableNumber == "Unknown Caller"
+                ) {
+                    Log.e("FullScreenActivity", "Invalid table, DB insert skipped")
+                    return
+                }
                 val userId = data["userId"] ?: "Unknown"
                 val token = data["token"] ?: ""
-                val jsonString = data["items"] ?:""
+                val jsonString = data["items"] ?:"[]"
                 val message = data["message"] ?: "No Instructions"
                 val name=data["name"] ?: ""
                 val mobile=data["mobile"] ?: ""
-                databaseHelper.insertOrder(tableNumber, jsonString ?: "", token, "0", userId,message,name,mobile)
+                databaseHelper.insertOrder(tableNumber, jsonString ?: "[]", token, "0", userId,message,name,mobile)
 
                 // Ensure UI updates run on the main thread
                 (context as? Activity)?.runOnUiThread {
@@ -103,13 +111,41 @@ class FullScreenActivity : Activity() {
         )
         setContentView(R.layout.activity_full_screen)
         val notificationData = intent.getSerializableExtra("notification_data") as? HashMap<String, String>
-        val tableNumber = notificationData?.get("table") ?: "Unknown Caller"
+        val tableNumber = notificationData?.get("table")
+        if (tableNumber.isNullOrBlank() ||
+            tableNumber == "undefined" ||
+            tableNumber == "null" ||
+            tableNumber == "Unknown Caller"
+        ) {
+            Log.e("FullScreenActivity", "Invalid table, DB insert skipped")
+            return
+        }
+        val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val roomsStr = prefs.getString("rooms", "[]") ?: "[]"
+        val jsonArray = JSONArray(roomsStr)
+
+        var roomName: String? = null
+        for (i in 0 until jsonArray.length()) {
+            val obj = jsonArray.getJSONObject(i)
+            if (obj.getString("id") == tableNumber) {
+                roomName = obj.getString("room")
+                break
+            }
+        }
+
+        val textView = findViewById<TextView>(R.id.table)
+        if (roomName != null) {
+            textView.text = "New order from\n$roomName"
+        } else {
+            textView.text = "New order from\n$tableNumber"
+        }
+
         val userId=notificationData?.get("userId") ?: "Unknown Caller"
         val token=notificationData?.get("token") ?: ""
         val message=notificationData?.get("message") ?: "No Instructions"
         val name=notificationData?.get("name") ?: ""
         val mobile=notificationData?.get("mobile") ?: ""
-        findViewById<TextView>(R.id.table).text = "New order from\n$tableNumber"
+//        findViewById<TextView>(R.id.table).text = "New order from\n$tableNumber"
         doneCallButton=findViewById(R.id.btnAccept)
         waitingCallButton = findViewById(R.id.btnWaitingCall)
         waitingCallButton.visibility = View.GONE
@@ -117,22 +153,60 @@ class FullScreenActivity : Activity() {
         val jsonString = notificationData?.get("items")
         databaseHelper.insertOrder(tableNumber, jsonString ?: "",token,"1",userId,message,name,mobile)
         // Parse JSON using JSONArray (No Gson needed!)
-        val itemList = mutableListOf<Item>()
+
+//        new code start from here -------
+        val itemList = mutableListOf<OrderItem>()
+
         if (!jsonString.isNullOrEmpty()) {
             val jsonArray = JSONArray(jsonString)
+
             for (i in 0 until jsonArray.length()) {
                 val obj = jsonArray.getJSONObject(i)
-                val name = obj.getString("name")
-                val quantity = obj.getInt("quantity")
-                itemList.add(Item(name, quantity))
+
+                val id = obj.optString("id")
+                val name = obj.optString("name")
+                val quantity = obj.optInt("quantity", 0)
+                val type = obj.optString("type", "text")
+                val audioUrl = obj.optString("audioUrl", null)
+
+                itemList.add(
+                    OrderItem(
+                        id = id,
+                        name = name,
+                        quantity = quantity,
+                        type = type,
+                        audioUrl = audioUrl
+                    )
+                )
             }
         }
 
-        // Convert items to a displayable list
         val listView: ListView = findViewById(R.id.listViewOrders)
-        val displayList = itemList.map { "${it.quantity} ⨯ ${it.name}" }
-        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, displayList)
+        val adapter = OrderAdapter(this, itemList)
         listView.adapter = adapter
+
+//        End here this is replace for audio player in list --------
+
+//        Comment code -----------from here
+//        val itemList = mutableListOf<Item>()
+//        if (!jsonString.isNullOrEmpty()) {
+//            val jsonArray = JSONArray(jsonString)
+//            for (i in 0 until jsonArray.length()) {
+//                val obj = jsonArray.getJSONObject(i)
+//                val name = obj.getString("name")
+//                val quantity = obj.getInt("quantity")
+//                itemList.add(Item(name, quantity))
+//            }
+//        }
+//
+//        // Convert items to a displayable list
+//        val listView: ListView = findViewById(R.id.listViewOrders)
+//        val displayList = itemList.map { "${it.quantity} ⨯ ${it.name}" }
+//        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, displayList)
+//        listView.adapter = adapter
+
+
+//        at here -----------
 
         mediaPlayer = MediaPlayer.create(this, R.raw.telephone_ring)
         mediaPlayer?.start()
@@ -235,7 +309,15 @@ class FullScreenActivity : Activity() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val data = intent?.getSerializableExtra("notification_data") as? HashMap<String, String>
             if (data != null) {
-                val tableNumber = data?.get("table") ?: "Unknown Caller"
+                val tableNumber = data?.get("table")
+                if (tableNumber.isNullOrBlank() ||
+                    tableNumber == "undefined" ||
+                    tableNumber == "null" ||
+                    tableNumber == "Unknown Caller"
+                ) {
+                    Log.e("FullScreenActivity", "Invalid table, DB insert skipped")
+                    return
+                }
                 val userId=data?.get("userId") ?: "Unknown"
                 val token=data?.get("token") ?: ""
                 val jsonString = data?.get("items")

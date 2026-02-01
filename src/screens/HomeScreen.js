@@ -1,19 +1,23 @@
-import {ActivityIndicator, Image, TouchableOpacity, View} from 'react-native';
-import {RegularText, SemiBoldText, styles} from '../utils/AppConstants';
-import {AppImages} from '../utils/AppImages';
-import {navigateTo} from '../utils/RootNavigation';
-import {AppScreens, LOGIN_SCREEN, TABLE_SCREEN} from '../utils/AppScreens';
-import {AppColors} from '../utils/AppColors';
-import {useEffect, useState} from 'react';
+import { ActivityIndicator, Image, TouchableOpacity, View } from 'react-native';
+import { RegularText, SemiBoldText, styles } from '../utils/AppConstants';
+import { AppImages } from '../utils/AppImages';
+import { navigateTo } from '../utils/RootNavigation';
+import { AppScreens, LOGIN_SCREEN, TABLE_SCREEN } from '../utils/AppScreens';
+import { AppColors } from '../utils/AppColors';
+import { useEffect, useState } from 'react';
 import OrderScreen from './menuScreens/OrderScreen';
 import History from './menuScreens/History';
 import AddMenu from './menuScreens/AddMenu';
-import {Colors} from 'react-native/Libraries/NewAppScreen';
-import {useSelector} from 'react-redux';
+import { Colors } from 'react-native/Libraries/NewAppScreen';
+import { useSelector } from 'react-redux';
 import messaging from '@react-native-firebase/messaging';
 import TableScreen from './menuScreens/TableScreen';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import InsertMenu from './menuScreens/InsertMenu';
+import OfferScreen from './offers/OfferScreen';
+import UserScreen from './locationDemo/CustomerScreen';
+import CustomerScreen from './locationDemo/CustomerScreen';
+import UpdateMenuScreen from './menuScreens/UpdateMenuScreen';
 
 const HomeScreen = () => {
   const Tab = createBottomTabNavigator();
@@ -48,28 +52,9 @@ const HomeScreen = () => {
       <Tab.Screen
         options={{
           tabBarIcon: props => (
-            <View style={{width: 70, alignItems: 'center'}}>
-              <Image
-                style={{
-                  height: 25,
-                  width: 25,
-                  resizeMode: 'contain',
-                  tintColor: props?.focused
-                    ? AppColors.LIGHT_GREEN_TEXT
-                    : AppColors.GRAY,
-                }}
-                source={AppImages?.ORDER_ICON}
-              />
-              <RegularText
-                styles={{
-                  fontSize: 10,
-                  color: props?.focused
-                    ? AppColors.LIGHT_GREEN_TEXT
-                    : AppColors.GRAY,
-                }}
-                text={'Orders'}
-              />
-            </View>
+            <CustomIcon text={'Orders'}
+              icon={AppImages.ORDER_ICON}
+              focused={props?.focused} />
           ),
         }}
         name={TABLE_SCREEN}
@@ -78,32 +63,37 @@ const HomeScreen = () => {
       <Tab.Screen
         options={{
           tabBarIcon: props => (
-            <View style={{width: 70, alignItems: 'center'}}>
-              <Image
-                style={{
-                  height: 25,
-                  width: 25,
-                  resizeMode: 'contain',
-                  tintColor: props?.focused
-                    ? AppColors.LIGHT_GREEN_TEXT
-                    : AppColors.GRAY,
-                }}
-                source={AppImages?.MENU_ICON}
-              />
-              <RegularText
-                styles={{
-                  fontSize: 10,
-                  color: props?.focused
-                    ? AppColors.LIGHT_GREEN_TEXT
-                    : AppColors.GRAY,
-                }}
-                text={'Menu'}
-              />
-            </View>
+            <CustomIcon text={'Menu'}
+              icon={AppImages.MENU_ICON}
+              focused={props?.focused} />
           ),
         }}
-        name={AppScreens.INSERT_MENU}
-        component={InsertMenu}
+        name={AppScreens.UPDATE_MENU_SCREEN}
+        component={UpdateMenuScreen}
+      />
+
+      <Tab.Screen
+        options={{
+          tabBarIcon: props => (
+            <CustomIcon text={'Offers'}
+              icon={AppImages.OFFER_ICON}
+              focused={props?.focused} />
+          ),
+        }}
+        name={AppScreens.OFFER_SCREEN}
+        component={OfferScreen}
+      />
+
+      <Tab.Screen
+        options={{
+          tabBarIcon: props => (
+            <CustomIcon text={'Customers'}
+              icon={AppImages.CUSTOMERS_ICON}
+              focused={props?.focused} />
+          ),
+        }}
+        name={'CustomerScreen'}
+        component={CustomerScreen}
       />
     </Tab.Navigator>
     // <View style={styles?.container}>
@@ -120,6 +110,33 @@ const HomeScreen = () => {
 
 export default HomeScreen;
 
+const CustomIcon = ({ icon, text, focused }) => {
+  return (
+    <View style={{ width: 70, alignItems: 'center', paddingTop: 10 }}>
+      <Image
+        style={{
+          height: 25,
+          width: 25,
+          resizeMode: 'contain',
+          tintColor: focused
+            ? AppColors.LIGHT_GREEN_TEXT
+            : AppColors.GRAY,
+        }}
+        source={icon}
+      />
+      <RegularText
+        styles={{
+          fontSize: 10,
+          color: focused
+            ? AppColors.LIGHT_GREEN_TEXT
+            : AppColors.GRAY,
+        }}
+        text={text}
+      />
+    </View>
+  )
+}
+
 export const Header = props => {
   return (
     <View
@@ -133,19 +150,19 @@ export const Header = props => {
       }}>
       <ImageButton
         onPress={props?.leftPress}
-        styles={{position: 'absolute', left: 15}}
+        styles={{ position: 'absolute', left: 15 }}
         src={props?.leftSrc}
       />
-      <SemiBoldText styles={{fontSize: 18}} text={props?.title} />
+      <SemiBoldText styles={{ fontSize: 18 }} text={props?.title} />
       {props?.loading ? (
         <ActivityIndicator
-          style={{position: 'absolute', right: 15}}
+          style={{ position: 'absolute', right: 15 }}
           size={20}
           color={'#000'}
         />
       ) : (
         <SemiBoldText
-          styles={{position: 'absolute', right: 15}}
+          styles={{ position: 'absolute', right: 15 }}
           text={props?.right}
           onPress={props?.rightPress}
         />

@@ -6,7 +6,7 @@ import {
   StatusBar,
   View,
 } from 'react-native';
-import {useDispatch, useSelector} from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   AppScreens,
   EDIT_SCREEN,
@@ -21,24 +21,29 @@ import SplashScreen from '../screens/auth/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import store from '../../redux/store/Store';
-import {SetRoute} from '../../redux/Action';
+import { SetRoute } from '../../redux/Action';
 import EditScreen from '../screens/editScreens/EditScreen';
 import NewSplashScreen from '../screens/auth/NewSplashScreen';
 import NewOrderScreen from '../screens/menuScreens/NewOrderScreen';
 import TableScreen from '../screens/menuScreens/TableScreen';
-import {useEffect, useRef} from 'react';
+import { useEffect, useRef } from 'react';
 import messaging from '@react-native-firebase/messaging';
-import {ADD_NEW_PARAMS, SET_NEW_ORDER} from '../../redux/ReduxConstants';
+import { ADD_NEW_PARAMS, SET_NEW_ORDER } from '../../redux/ReduxConstants';
 import Tts from 'react-native-tts';
 import AsyncStorage from '@react-native-community/async-storage';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {NavigationContainer} from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { NavigationContainer } from '@react-navigation/native';
 import UserScreen from '../screens/task/UserScreen';
 import ChatScreen from '../screens/task/ChatScreen';
 import AddItems from '../screens/menuScreens/AddItems';
 import OrderHistory from '../screens/orderScreens/OrderHistory';
 import AddResturant from '../screens/menuScreens/AddResturant';
 import InsertMenu from '../screens/menuScreens/InsertMenu';
+import OfferScreen from '../screens/offers/OfferScreen';
+import Location from '../screens/locationDemo/CustomerScreen';
+import CustomerScreen from '../screens/locationDemo/CustomerScreen';
+import OrderDetailsScreen from '../screens/menuScreens/OrderDetailScreen';
+import UpdateMenuScreen from '../screens/menuScreens/UpdateMenuScreen';
 
 const RootNavigation = props => {
   const Stack = createNativeStackNavigator();
@@ -93,7 +98,7 @@ const RootNavigation = props => {
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         // initialRouteName={AppScreens.NEW_SPLASH_SCREEN}
-        screenOptions={{headerShown: false}}>
+        screenOptions={{ headerShown: false }}>
         <Stack.Screen name={NEW_SPLASH_SCREEN} component={NewSplashScreen} />
         <Stack.Screen name={LOGIN_SCREEN} component={LoginScreen} />
         <Stack.Screen name={HOME_SCREEN} component={HomeScreen} />
@@ -110,9 +115,25 @@ const RootNavigation = props => {
           name={AppScreens.ADD_RESTURANT}
           component={AddResturant}
         />
-         <Stack.Screen
+        <Stack.Screen
           name={AppScreens.INSERT_MENU}
           component={InsertMenu}
+        />
+        <Stack.Screen
+          name={AppScreens.OFFER_SCREEN}
+          component={OfferScreen}
+        />
+        <Stack.Screen
+          name={'CustomerScreen'}
+          component={CustomerScreen}
+        />
+        <Stack.Screen
+          name={AppScreens.ORDER_DETAIL_SCREEN}
+          component={OrderDetailsScreen}
+        />
+        <Stack.Screen
+          name={AppScreens.UPDATE_MENU_SCREEN}
+          component={UpdateMenuScreen}
         />
       </Stack.Navigator>
     </NavigationContainer>
@@ -122,7 +143,7 @@ const RootNavigation = props => {
 export default RootNavigation;
 
 export const navigateTo = (name, params) => {
-  store?.dispatch(SetRoute({name: name, params: params}));
+  store?.dispatch(SetRoute({ name: name, params: params }));
 };
 
 export const handleNewOrder = (data, screen) => {
@@ -160,10 +181,10 @@ export const handleNewOrder = (data, screen) => {
     //    {table: data?.tableNumber, data: tableOrder},
     //   }),
     // );
-    store?.dispatch({type: ADD_NEW_PARAMS, data: {params: tableOrder}});
-    store?.dispatch({type: SET_NEW_ORDER, data: {...newOrderData, read: 1}});
+    store?.dispatch({ type: ADD_NEW_PARAMS, data: { params: tableOrder } });
+    store?.dispatch({ type: SET_NEW_ORDER, data: { ...newOrderData, read: 1 } });
   } else {
-    store?.dispatch({type: SET_NEW_ORDER, data: newOrderData});
+    store?.dispatch({ type: SET_NEW_ORDER, data: newOrderData });
   }
   AsyncStorage.setItem('order', data?.orderId);
 };

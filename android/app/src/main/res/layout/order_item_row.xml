@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="10dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <!-- Text item -->
+    <TextView
+        android:id="@+id/textItem"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:visibility="gone"/>
+
+    <!-- Audio item -->
+    <Button
+        android:id="@+id/btnPlayAudio"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="▶ Play Voice Message/Instruction"
+        android:visibility="gone"/>
+
+</LinearLayout>

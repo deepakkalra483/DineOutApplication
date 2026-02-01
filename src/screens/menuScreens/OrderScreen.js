@@ -13,18 +13,19 @@ import {
   SemiBoldText,
   styles,
 } from '../../utils/AppConstants';
-import {Header, ImageButton} from '../HomeScreen';
-import {AppColors} from '../../utils/AppColors';
-import {useEffect, useState} from 'react';
+import { Header, ImageButton } from '../HomeScreen';
+import { AppColors } from '../../utils/AppColors';
+import { useEffect, useState } from 'react';
 import Tts from 'react-native-tts';
-import {getUser} from '../../utils/AsynStorageHelper';
-import {useDispatch, useSelector} from 'react-redux';
-import {getTodayOrders} from '../../../redux/Action';
+import { getUser } from '../../utils/AsynStorageHelper';
+import { useDispatch, useSelector } from 'react-redux';
+import { getTodayOrders } from '../../../redux/Action';
 import {
   SET_NEW_ORDER,
   TODAY_ORDER_LOADING,
 } from '../../../redux/ReduxConstants';
-import {AppFonts} from '../../utils/AppFonts';
+import { AppFonts } from '../../utils/AppFonts';
+import moment from 'moment';
 
 const orders = [
   {
@@ -71,7 +72,7 @@ const orders = [
 const OrderScreen = () => {
   const [orders, setOrders] = useState([]);
   const dispatch = useDispatch();
-  const {orders: ordersData, loading} = useSelector(
+  const { orders: ordersData, loading } = useSelector(
     state => state.todayOrderReducer,
   );
 
@@ -80,7 +81,7 @@ const OrderScreen = () => {
   );
   // const res = useSelector(state => state.navReducer);
   // setOrders(ordersData);
-  console.log('load--', loading);
+  console.log('soretdOred--', sortedUsers);
 
   // useEffect(() => {
   //   const interval = setInterval(() => {
@@ -124,7 +125,7 @@ const OrderScreen = () => {
   const getCurrentOrder = () => {
     getUser(res => {
       console.log('res', res?.userId);
-      dispatch(getTodayOrders({id: res?.id}));
+      dispatch(getTodayOrders({ id: res?.id }));
     });
   };
 
@@ -139,14 +140,14 @@ const OrderScreen = () => {
     orderId: '-OHnPEOgMM8FxW8Ok6ht',
     table: 'table1',
     time: 1738176787482,
-    items: [{qty: 1, name: 'test Order'}],
+    items: [{ qty: 1, name: 'test Order' }],
   };
 
   const AddNewOrder = () => {
-    dispatch({type: SET_NEW_ORDER, data: newOrder});
+    dispatch({ type: SET_NEW_ORDER, data: newOrder });
   };
   return (
-    <View style={{flex: 1, backgroundColor: AppColors.LIGHT_BACKGROUND}}>
+    <View style={{ flex: 1, backgroundColor: AppColors.LIGHT_BACKGROUND }}>
       <Header title={'My Orders'} />
       {loading ? (
         <RegularText text={'Loading'} />
@@ -154,8 +155,8 @@ const OrderScreen = () => {
         <FlatList
           data={sortedUsers || []}
           keyExtractor={item => item.id}
-          contentContainerStyle={{paddingBottom: 55, overflow: 'hidden'}}
-          renderItem={({item}) => (
+          contentContainerStyle={{ paddingBottom: 55, overflow: 'hidden' }}
+          renderItem={({ item }) => (
             // <UserOrderBox list={item?.orders} />
             <TableCell
               // tbale={item?.}
@@ -310,7 +311,14 @@ export const TableCell = props => {
 export const OrderCell = props => {
   const item = props?.item;
   const orderNumber = props?.index;
-  console.log('item--', item);
+  console.log('timestamp---',item?.time_stamp)
+  const formattedDate = moment.parseZone(item?.time_stamp)
+    .add(5, 'hours')      // add 5 hours
+    .add(30, 'minutes')   // add 30 minutes
+    .format('DD MMM YYYY, hh:mm A');
+
+
+  // console.log('item--', item);
   return (
     <View
       style={{
@@ -335,14 +343,10 @@ export const OrderCell = props => {
             marginHorizontal: 5,
           }}></View>
         <SemiBoldText
-          text={`${new Date(item?.time_stamp).toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          })}`}
+          text={formattedDate}
         />
         <SemiBoldText
-          styles={{marginLeft: 10, color: 'green'}}
+          styles={{ marginLeft: 10, color: 'green' }}
           text={item?.message}
         />
         {item?.token && (
@@ -364,7 +368,7 @@ export const OrderCell = props => {
           </Text>
         )}
       </View>
-      <View style={{paddingHorizontal: 10, paddingVertical: 5}}>
+      <View style={{ paddingHorizontal: 10, paddingVertical: 5 }}>
         {item?.items.map((item, index) => (
           <View
             key={index}
@@ -374,9 +378,12 @@ export const OrderCell = props => {
               alignItems: 'center',
               // paddingVertical: 2.5,
             }}>
-            <RegularText styles={{fontSize: 7, marginRight: 8}} text={'⏺️'} />
-            <SemiBoldText text={` ${item?.quantity} × `} />
-            <SemiBoldText text={` ${item?.name}`} />
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: "center" }}>
+              <RegularText styles={{ fontSize: 7, marginRight: 8 }} text={'⏺️'} />
+              <SemiBoldText text={` ${item?.quantity} × `} />
+              <SemiBoldText text={` ${item?.name}`} />
+            </View>
+            <SemiBoldText text={`₹ ${item?.price}`} />
           </View>
         ))}
       </View>
@@ -441,11 +448,11 @@ export const OrderBox = props => {
             }
           />
           <RegularText
-            styles={{color: 'red', fontSize: 12}}
+            styles={{ color: 'red', fontSize: 12 }}
             text={calculateTime(item?.time)}
           />
           <ImageButton
-            styles={{height: 35, width: 35}}
+            styles={{ height: 35, width: 35 }}
             src={require('../../assets/images/icons/play_icon.png')}
             onPress={props?.play}
           />

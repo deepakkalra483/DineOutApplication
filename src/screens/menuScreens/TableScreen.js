@@ -10,20 +10,23 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import {Header} from '../HomeScreen';
-import {AppColors} from '../../utils/AppColors';
-import {AppImages} from '../../utils/AppImages';
-import {RegularText, SemiBoldText} from '../../utils/AppConstants';
-import {navigateTo} from '../../utils/RootNavigation';
-import {AppScreens, NEW_ORDER_SCREEN} from '../../utils/AppScreens';
-import {getUser} from '../../utils/AsynStorageHelper';
-import {getTodayOrders} from '../../../redux/Action';
-import {useDispatch, useSelector} from 'react-redux';
-import {useEffect, useState} from 'react';
+import { Header } from '../HomeScreen';
+import { AppColors } from '../../utils/AppColors';
+import { AppImages } from '../../utils/AppImages';
+import { RegularText, SemiBoldText } from '../../utils/AppConstants';
+import { navigateTo } from '../../utils/RootNavigation';
+import { AppScreens, NEW_ORDER_SCREEN, ORDER_DETAIL_SCREEN } from '../../utils/AppScreens';
+import { getRooms, getUser } from '../../utils/AsynStorageHelper';
+import { getTodayOrders } from '../../../redux/Action';
+import { useDispatch, useSelector } from 'react-redux';
+import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-community/async-storage';
+import { useIsFocused } from '@react-navigation/native';
 
-const TableScreen = ({navigation}) => {
-  const {OrdersModule} = NativeModules;
+const TableScreen = ({ navigation }) => {
+  const focused = useIsFocused()
+  const { OrdersModule } = NativeModules;
+  const [rooms, setRooms] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [details, setDetails] = useState(null);
@@ -33,8 +36,19 @@ const TableScreen = ({navigation}) => {
       console.log('tables--', res);
       setDetails(res);
     });
-    fetchOrders();
+    getRooms(res => {
+      setRooms(res)
+      console.log('rooms---', res)
+    })
+    // AsyncStorage.removeItem('user')
+
   }, [refresh]);
+
+  useEffect(() => {
+    if (focused) {
+      fetchOrders();
+    }
+  }, [focused])
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -59,7 +73,7 @@ const TableScreen = ({navigation}) => {
   const getCurrentOrder = () => {
     getUser(res => {
       // console.log('res', res?.userId);
-      dispatch(getTodayOrders({id: res?.id}));
+      dispatch(getTodayOrders({ id: res?.id }));
     });
   };
   // console.log('order--', JSON.stringify(ordersData));
@@ -101,8 +115,8 @@ const TableScreen = ({navigation}) => {
   //     />
   //   );
   // };
-  const renderItem = ({item, index}) => {
-    const tableNumber = `T${index + 1}`;
+  const renderItem = ({ item, index }) => {
+    const tableNumber = `${item?.id}`;
 
     // Filter only valid orders
     const tableOrder = orders.find(
@@ -116,22 +130,24 @@ const TableScreen = ({navigation}) => {
 
     return (
       <TableCell
+        item={item}
         newOrder={hasUnreadOrders}
         status={!!tableOrder}
         index={tableNumber}
-        tableStyles={{width: boxSize, height: boxSize}}
+        tableStyles={{ width: boxSize, height: boxSize }}
         onPress={() => {
-          navigation.navigate(NEW_ORDER_SCREEN, {
+          navigation.navigate(ORDER_DETAIL_SCREEN, {
             table: tableNumber,
             data: tableOrder,
             id: details?.id,
+            item: item
           });
         }}
       />
     );
   };
   return (
-    <View style={{flex: 1, backgroundColor: AppColors.LIGHT_BACKGROUND}}>
+    <View style={{ flex: 1, backgroundColor: AppColors.LIGHT_BACKGROUND }}>
       <Header
         title={'Table List'}
         right={details?.mobile == '8685015189' ? 'Add' : null}
@@ -141,20 +157,20 @@ const TableScreen = ({navigation}) => {
         <ScrollView>
           <SemiBoldText text={'loading'} />
           {orders?.length == 0 && <SemiBoldText text={'no data'} />}
-          {orders.map((order, index) => (
-            <View style={{marginTop: 5, backgroundColor: 'red'}} key={index}>
-              <Text style={{color: '#000'}}>Table: {order.table_number}</Text>
+          {/* {orders.map((order, index) => (
+            <View style={{ marginTop: 5, }} key={index}>
+              <Text style={{ color: '#000' }}>Table: {order.table_number}</Text>
               <Text>Items: {order.items}</Text>
               <Text>read: {order.read}</Text>
               <Text>token: {order.token}</Text>
               <Text>time: {order.time_stamp}</Text>
               <Text>user: {order.user_id}</Text>
             </View>
-          ))}
+          ))} */}
         </ScrollView>
       ) : (
         <FlatList
-          data={Array.from({length: details?.tables})}
+          data={rooms}
           renderItem={renderItem}
           // keyExtractor={item => item.id}
           numColumns={numColumns}
@@ -184,6 +200,7 @@ const styles = StyleSheet.create({
 export default TableScreen;
 
 export const TableCell = props => {
+  const item = props?.item
   const index = props?.index;
   const status = props?.status;
   const newOrder = props?.newOrder;
@@ -191,7 +208,7 @@ export const TableCell = props => {
   return (
     <TouchableOpacity
       activeOpacity={1}
-      style={[styles.box, {borderWidth: status ? 1 : 0, ...props?.tableStyles}]}
+      style={[styles.box, { borderWidth: status ? 1 : 0, ...props?.tableStyles }]}
       onPress={props?.onPress}>
       <Image
         style={{
@@ -201,8 +218,8 @@ export const TableCell = props => {
         source={status ? AppImages?.ACTIVE_TABLE : AppImages?.TABLE_IMAGE}
       />
       <RegularText
-        styles={{position: 'absolute', color: status ? '#000' : 'gray'}}
-        text={index}
+        styles={{ position: 'absolute', color: status ? '#000' : 'gray' }}
+        text={item?.room}
       />
       {newOrder && status && (
         <Text

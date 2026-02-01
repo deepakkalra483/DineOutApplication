@@ -38,10 +38,10 @@ const charcters = ['chef', 'reception', 'waiter', 'owner'];
 const LoginScreen = ({navigation}) => {
   const [mobile, setMobile] = useState(null);
   const [password, setPassword] = useState(null);
-  const [userType, setUserType] = useState(null);
+  const [userType, setUserType] = useState('chef');
   const [loading, setLoading] = useState(false);
   const [deviceId, setDeviceId] = useState(null);
-  const [tables, setTables] = useState(null);
+  const [tables, setTables] = useState(10);
   const [showModal, setShowModal] = useState(false);
 
   const requestOverlayPermission = () => {
@@ -174,12 +174,12 @@ const LoginScreen = ({navigation}) => {
           title={'Password'}
           onChangeText={i => setPassword(i)}
         />
-        <InputView
+        {/* <InputView
           placeholder={'eg: 10'}
           title={'Number of tables'}
           onChangeText={i => setTables(i)}
-        />
-        <View style={{width: '100%', marginBottom: 20, marginTop: 15}}>
+        /> */}
+        {/* <View style={{width: '100%', marginBottom: 20, marginTop: 15}}>
           <RegularText
             styles={{marginBottom: 10, color: AppColors.LIGHT_GRAY_TEXT}}
             text={'Login as'}
@@ -203,7 +203,7 @@ const LoginScreen = ({navigation}) => {
               </Text>
             )}
           />
-        </View>
+        </View> */}
         <ButtonView
           styles={{marginTop: 15}}
           text={'Log in'}
@@ -241,6 +241,7 @@ export const InputView = props => {
           backgroundColor: '#fff',
           paddingLeft: 10,
         }}
+        multiline
         editable={props?.editable}
         defaultValue={props?.defaultValue}
         keyboardType={props?.keyboardType}
@@ -324,6 +325,7 @@ export const InputSelection = props => {
 export const ButtonView = props => {
   const click = props?.click;
   const loading = props?.loading;
+  console.log('load---',loading)
   return (
     <TouchableOpacity
       activeOpacity={0.9}
